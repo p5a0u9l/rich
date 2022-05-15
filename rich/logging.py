@@ -105,6 +105,7 @@ class RichHandler(Handler):
         self.locals_max_length = locals_max_length
         self.locals_max_string = locals_max_string
         self.keywords = keywords
+        self._log_count: int = 0
 
     def get_level_text(self, record: LogRecord) -> Text:
         """Get the level name from the record.
@@ -208,6 +209,10 @@ class RichHandler(Handler):
         level = self.get_level_text(record)
         time_format = None if self.formatter is None else self.formatter.datefmt
         log_time = datetime.fromtimestamp(record.created)
+        # even if omit_repeated_times=False, it's helpful to have at least one time
+        # every 1/2 screen or so
+        force_time: bool = self._log_count == 25  # approx. 2x per screen
+        self._log_count = self._log_count + 1 if self._log_count < 25 else 0
 
         log_renderable = self._log_render(
             self.console,
@@ -218,7 +223,9 @@ class RichHandler(Handler):
             path=path,
             line_no=record.lineno,
             link_path=record.pathname if self.enable_link_path else None,
+            force_time=force_time,
         )
+
         return log_renderable
 
 

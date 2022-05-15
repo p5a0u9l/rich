@@ -162,6 +162,57 @@ def test_markup_and_highlight():
     assert log_message in render_plain
 
 
+def test_periodic_log_times():
+    """tests that log times are rendered periodically even in omit_repeated_times=True"""
+    thresh_value = 25
+
+    handler_ = RichHandler(
+        console=Console(
+            file=io.StringIO(),
+            force_terminal=True,
+            width=80,
+            color_system="truecolor",
+            _environ={},
+        ),
+        enable_link_path=False,
+        omit_repeated_times=True,
+    )
+    log.removeHandler(handler)
+    log.addHandler(handler_)
+    rendered = handler.console.file.getvalue()
+
+    while log.handlers[0]._log_count % thresh_value > 0:
+        log.info("this is log line 0")
+
+    # reset pos in rendered
+    rendered = handler.console.file.getvalue()
+    line_offset = len(rendered.splitlines())
+
+    for i in range(2 * thresh_value):
+        log.info(f"this is log line {i+1}")
+        rendered = handler.console.file.getvalue()[line_offset:]
+        if i == thresh_value - 1:
+            n_date = sum(["[DATE]" in line for line in rendered.splitlines()])
+            # log line x - 1: n_date should be 1
+            assert n_date == 1
+        elif i == thresh_value:
+            n_date = sum(["[DATE]" in line for line in rendered.splitlines()])
+            # log line x: n_date should be 2
+            assert n_date == 2
+
+    # log line 2x - 1: n_date should be 2
+    log.info(f"this is log line {2*thresh_value}")
+    rendered = handler.console.file.getvalue()[line_offset:]
+    n_date = sum(["[DATE]" in line for line in rendered.splitlines()])
+    assert n_date == 2
+
+    # log line 2x + 1 - n_date should be 3
+    log.info(f"this is log line {2*thresh_value + 1}")
+    rendered = handler.console.file.getvalue()[line_offset:]
+    n_date = sum(["[DATE]" in line for line in rendered.splitlines()])
+    assert n_date == 3
+
+
 if __name__ == "__main__":
     render = make_log()
     print(render)

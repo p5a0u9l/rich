@@ -39,6 +39,7 @@ class LogRender:
         path: Optional[str] = None,
         line_no: Optional[int] = None,
         link_path: Optional[str] = None,
+        force_time: bool = False,
     ) -> "Table":
         from .containers import Renderables
         from .table import Table
@@ -60,7 +61,11 @@ class LogRender:
                 log_time_display = time_format(log_time)
             else:
                 log_time_display = Text(log_time.strftime(time_format))
-            if log_time_display == self._last_time and self.omit_repeated_times:
+            if (
+                log_time_display == self._last_time
+                and self.omit_repeated_times
+                and not force_time
+            ):
                 row.append(Text(" " * len(log_time_display)))
             else:
                 row.append(log_time_display)
